@@ -36,8 +36,7 @@ export default async function monitorWebsite(URL_TO_SCRAPE, FILTER_PARAMS) {
       Następna aktualizacja danych  ${dataUpdateTimes.nextTimePretty}.`;
 
   if (filteredData && Object.values(filteredData).length) {
-    // notifyTelegram(encodeURI(msg));
-    console.log(msg);
+    notifyTelegram(encodeURI(msg));
   } else {
     console.log(
       `[${Date.now()}] No data was obtained after applying filters criteria.`
