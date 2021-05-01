@@ -1,7 +1,10 @@
+import fs from "fs";
 import webscrape from "./webscrape.js";
 import notifyTelegram from "./notifyTelegram.js";
+const jsonPath = "./logs/savedData.json";
 
 export default async function monitorWebsite(URL_TO_SCRAPE, FILTER_PARAMS) {
+  const savedData = JSON.parse(fs.readFileSync(jsonPath, "utf-8"));
   const filterData = (row) => {
     return (
       !FILTER_PARAMS.notCity.includes(row.city.toUpperCase()) &&
@@ -9,6 +12,13 @@ export default async function monitorWebsite(URL_TO_SCRAPE, FILTER_PARAMS) {
       eval(`${row.date} ${FILTER_PARAMS.date}`)
     );
   };
+  const isDataNew = (newRow) =>
+    savedData.filter(
+      (oldRow) =>
+        oldRow.city === newRow.city &&
+        oldRow.prettyDate === newRow.prettyDate &&
+        oldRow.type === newRow.type
+    ).length === 0;
 
   const dataUpdateTimes = { lastTime: null, nextTime: null };
 
@@ -16,11 +26,12 @@ export default async function monitorWebsite(URL_TO_SCRAPE, FILTER_PARAMS) {
   const filteredData = data
     .filter(filterData)
     .sort((elA, elB) => elA.date - elB.date);
+  const newData = filteredData.filter(isDataNew);
 
   const msg =
     `Dostępne nowe terminy:
     ******************************` +
-    filteredData
+    newData
       .map(
         (row) =>
           `
@@ -35,13 +46,21 @@ export default async function monitorWebsite(URL_TO_SCRAPE, FILTER_PARAMS) {
       Aktualizacja danych: ${dataUpdateTimes.lastTimePretty}.
       Następna aktualizacja danych  ${dataUpdateTimes.nextTimePretty}.`;
 
-  if (filteredData && Object.values(filteredData).length) {
+  if (newData && Object.values(newData).length) {
+    console.log(msg);
+    console.log("");
     notifyTelegram(encodeURI(msg));
   } else {
     console.log(
-      `[${Date.now()}] No data was obtained after applying filters criteria.`
+      `[${Date.now()}] No new data was obtained after applying filters criteria.`
     );
   }
+  const dataToSave = filteredData.map((el) => ({
+    city: el.city,
+    type: el.type,
+    prettyDate: el.prettyDate,
+  }));
+  fs.writeFileSync(jsonPath, JSON.stringify(dataToSave));
 
   // setTimeout for next data fetching
   executeAtSpecificTime(
