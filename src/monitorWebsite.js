@@ -65,7 +65,10 @@ export default async function monitorWebsite(URL_TO_SCRAPE, FILTER_PARAMS) {
   // setTimeout for next data fetching
   executeAtSpecificTime(
     async () => monitorWebsite(URL_TO_SCRAPE, FILTER_PARAMS),
-    dataUpdateTimes.nextTime.getTime() + 1000
+    // data update times at website seem to be quite wrong.
+    // checking for new data every 1 minute instead
+    // dataUpdateTimes.nextTime.getTime() + 1000
+    Date.now() + 60000
   );
 }
 
